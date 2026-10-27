@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PedalVerde · Consola de la API</title>
+  <meta name="description" content="Consola web de la API REST de PedalVerde, un sistema de bicicletas compartidas.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231d7a46'/%3E%3Cg fill='none' stroke='white' stroke-width='2.2'%3E%3Ccircle cx='9' cy='20' r='5'/%3E%3Ccircle cx='23' cy='20' r='5'/%3E%3Cpath d='M9 20l5-9h6l3 9M14 11l4 9'/%3E%3C/g%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+  <a class="saltar" href="#contenido">Saltar al contenido</a>
+
+  <header class="cabecera">
+    <div class="marca">
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+        <rect width="32" height="32" rx="8" />
+        <g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="9" cy="20" r="5" /><circle cx="23" cy="20" r="5" />
+          <path d="M9 20l5-9h6l3 9M14 11l4 9M12 8h4" />
+        </g>
+      </svg>
+      <div>
+        <h1>PedalVerde</h1>
+        <p>Bicicletas compartidas · API REST</p>
+      </div>
+    </div>
+    <div class="estado-servidor" id="estado-servidor" data-estado="cargando">
+      <span class="punto" aria-hidden="true"></span>
+      <span class="texto">Conectando…</span>
+    </div>
+  </header>
+
+  <section class="kpis" id="kpis" aria-label="Resumen del sistema"></section>
+
+  <nav class="pestanas" role="tablist" aria-label="Secciones">
+    <button role="tab" id="tab-estaciones" aria-controls="panel-estaciones" aria-selected="true">Estaciones</button>
+    <button role="tab" id="tab-prestamos" aria-controls="panel-prestamos" aria-selected="false" tabindex="-1">Préstamos</button>
+    <button role="tab" id="tab-api" aria-controls="panel-api" aria-selected="false" tabindex="-1">Probar la API</button>
+  </nav>
+
+  <main id="contenido">
+    <!-- ESTACIONES -->
+    <section class="panel" id="panel-estaciones" role="tabpanel" aria-labelledby="tab-estaciones">
+      <div class="barra-filtros">
+        <label>Zona
+          <select id="filtro-zona"><option value="">Todas</option></select>
+        </label>
+        <label>Tipo de bici
+          <select id="filtro-tipo">
+            <option value="">Cualquiera</option>
+            <option value="mecanica">Mecánica</option>
+            <option value="electrica">Eléctrica</option>
+          </select>
+        </label>
+        <label class="check"><input type="checkbox" id="filtro-disponibles"> Solo con bicis disponibles</label>
+        <code class="url-viva" id="url-estaciones" title="Petición que usa esta vista"></code>
+      </div>
+      <ul class="leyenda" aria-label="Leyenda de la barra">
+        <li><span class="muestra mec"></span>Mecánica</li>
+        <li><span class="muestra ele"></span>Eléctrica</li>
+        <li><span class="muestra sin"></span>Eléctrica sin carga</li>
+        <li><span class="muestra man"></span>Mantenimiento</li>
+        <li><span class="muestra lib"></span>Anclaje libre</li>
+      </ul>
+      <div class="rejilla" id="lista-estaciones" aria-live="polite"></div>
+    </section>
+
+    <!-- PRÉSTAMOS -->
+    <section class="panel" id="panel-prestamos" role="tabpanel" aria-labelledby="tab-prestamos" hidden>
+      <div class="dos-columnas">
+        <form class="tarjeta" id="form-prestamo">
+          <h2>Prestar una bicicleta</h2>
+          <p class="pista">Envía <code>POST /api/prestamos</code></p>
+          <label>Usuario
+            <select name="usuarioId" id="sel-usuario" required></select>
+          </label>
+          <label>Estación de origen
+            <select name="estacionId" id="sel-estacion" required></select>
+          </label>
+          <fieldset class="opciones">
+            <legend>Tipo</legend>
+            <label><input type="radio" name="tipo" value="" checked> Cualquiera</label>
+            <label><input type="radio" name="tipo" value="mecanica"> Mecánica</label>
+            <label><input type="radio" name="tipo" value="electrica"> Eléctrica</label>
+          </fieldset>
+          <button class="boton principal" type="submit">Prestar bicicleta</button>
+        </form>
+        <div class="tarjeta">
+          <h2>Respuesta de la API</h2>
+          <div id="resultado-prestamo" class="resultado" aria-live="polite">
+            <p class="vacio">Elige un usuario y una estación. Prueba también con Camilo (sancionado) o con la estación San Antonio (vacía) para ver los errores.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="tarjeta">
+        <div class="tarjeta-cab">
+          <h2>Préstamos activos</h2>
+          <p class="pista">Devolver: <code>PATCH /api/prestamos/:id/devolucion</code> · Cancelar: <code>DELETE /api/prestamos/:id</code></p>
+        </div>
+        <div id="tabla-activos" class="tabla-envoltura"></div>
+      </div>
+
+      <div class="tarjeta">
+        <div class="tarjeta-cab">
+          <h2>Historial reciente</h2>
+          <p class="pista"><code>GET /api/prestamos</code></p>
+        </div>
+        <div id="tabla-historial" class="tabla-envoltura"></div>
+      </div>
+    </section>
+
+    <!-- PROBADOR -->
+    <section class="panel" id="panel-api" role="tabpanel" aria-labelledby="tab-api" hidden>
+      <div class="api-intro tarjeta">
+        <div>
+          <h2>La colección de Postman, aquí mismo</h2>
+          <p>Estas son las mismas peticiones y pruebas del archivo de Postman. Ejecuta una o corre toda la colección en orden, como el <em>Collection Runner</em>.</p>
+        </div>
+        <div class="acciones">
+          <button class="boton principal" id="btn-correr-todo" type="button">Ejecutar toda la colección</button>
+          <a class="boton" href="/postman/PedalVerde.postman_collection.json" download>Descargar colección</a>
+          <a class="boton" href="/postman/PedalVerde.local.postman_environment.json" download>Descargar entorno</a>
+        </div>
+        <p class="resumen-corrida" id="resumen-corrida" aria-live="polite"></p>
+      </div>
+
+      <div class="api-layout">
+        <nav class="lista-peticiones" id="lista-peticiones" aria-label="Peticiones de la colección"></nav>
+        <div class="consola tarjeta" id="consola">
+          <div class="consola-linea">
+            <span class="metodo" id="consola-metodo">GET</span>
+            <code id="consola-url"></code>
+            <button class="boton principal" id="btn-enviar" type="button">Enviar</button>
+          </div>
+          <p class="descripcion" id="consola-descripcion"></p>
+          <label class="cuerpo-etiqueta" id="consola-cuerpo-etiqueta">Cuerpo (JSON)
+            <textarea id="consola-cuerpo" spellcheck="false" rows="6"></textarea>
+          </label>
+          <div class="respuesta" id="consola-respuesta" hidden>
+            <div class="respuesta-cab">
+              <span class="codigo" id="resp-codigo"></span>
+              <span id="resp-tiempo"></span>
+            </div>
+            <ul class="pruebas" id="resp-pruebas"></ul>
+            <pre class="json" id="resp-json"></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <dialog class="detalle" id="detalle-estacion" aria-labelledby="detalle-titulo">
+    <div class="detalle-cab">
+      <div>
+        <p class="sobretitulo" id="detalle-sobretitulo"></p>
+        <h2 id="detalle-titulo"></h2>
+      </div>
+      <button class="cerrar" type="button" id="detalle-cerrar" aria-label="Cerrar">×</button>
+    </div>
+    <div id="detalle-cuerpo"></div>
+  </dialog>
+
+  <div class="aviso" id="aviso" role="status" aria-live="polite"></div>
+
+  <footer class="pie">
+    <span>PedalVerde API · Node.js + Express</span>
+    <a href="/api">GET /api</a>
+  </footer>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

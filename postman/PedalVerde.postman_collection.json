@@ -1,0 +1,1505 @@
+{
+  "info": {
+    "_postman_id": "6b1f3c2e-9d4a-4c7e-8f21-5a0e7c3b9d10",
+    "name": "PedalVerde API - Bicicletas compartidas",
+    "description": "Colección de pruebas de la API REST de PedalVerde.\n\nCómo usarla:\n1. Enciende la API con `npm start` (http://localhost:4000).\n2. Selecciona el entorno \"PedalVerde local\" o deja la variable baseUrl de la colección.\n3. Ejecuta la colección completa con Run collection, de arriba abajo. La primera petición reinicia los datos.\n\nCada petición tiene pruebas automáticas (pestaña Tests). Además, a nivel de colección se comprueba que toda respuesta llegue en menos de 1 s y sea JSON con el campo ok.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.test(\"Responde en menos de 1 segundo\", function () {",
+          "  pm.expect(pm.response.responseTime).to.be.below(1000);",
+          "});",
+          "pm.test(\"Responde JSON con el campo ok\", function () {",
+          "  pm.expect(pm.response.json()).to.have.property(\"ok\");",
+          "});"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:4000",
+      "type": "string"
+    },
+    {
+      "key": "prestamoId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "usuarioNuevoId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Preparación",
+      "item": [
+        {
+          "name": "Reiniciar datos de prueba",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Semilla completa: 8 estaciones y 52 bicicletas\", function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.datos.estaciones).to.equal(8);",
+                  "  pm.expect(json.datos.bicicletas).to.equal(52);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/reset",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "reset"
+              ]
+            },
+            "description": "Vuelve a los datos iniciales para que el resto de la colección dé siempre el mismo resultado. Respuesta esperada: 200 OK con 8 estaciones y 52 bicicletas."
+          },
+          "response": []
+        },
+        {
+          "name": "Salud del servicio",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"El servicio está ok\", function () {",
+                  "  pm.expect(pm.response.json().datos.estado).to.equal(\"ok\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/salud",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "salud"
+              ]
+            },
+            "description": "Comprueba que la API está encendida. Respuesta esperada: 200 OK con datos.estado = \"ok\"."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "1. Consultas principales",
+      "description": "Las consultas centrales de la entrega: GET con filtros, GET por ID, POST, PATCH y DELETE.",
+      "item": [
+        {
+          "name": "1. Listar estaciones de la zona Norte con bicis (GET con filtros)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Devuelve una lista y el total coincide\", function () {",
+                  "  pm.expect(json.datos).to.be.an(\"array\");",
+                  "  pm.expect(json.total).to.equal(json.datos.length);",
+                  "});",
+                  "pm.test(\"Todas son de la zona Norte y tienen bicis disponibles\", function () {",
+                  "  json.datos.forEach(function (estacion) {",
+                  "    pm.expect(estacion.zona).to.equal(\"Norte\");",
+                  "    pm.expect(estacion.disponibilidad.bicisDisponibles).to.be.above(0);",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/estaciones?zona=Norte&minDisponibles=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "estaciones"
+              ],
+              "query": [
+                {
+                  "key": "zona",
+                  "value": "Norte"
+                },
+                {
+                  "key": "minDisponibles",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Lista las estaciones filtrando por query params. Filtros disponibles: zona, tipo (mecanica | electrica), minDisponibles, conAnclajes, q. Respuesta esperada: 200 OK con EST-01 y EST-02."
+          },
+          "response": []
+        },
+        {
+          "name": "2. Consultar una estación por ID (GET con parámetro de ruta)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const estacion = pm.response.json().datos;",
+                  "pm.test(\"Es la estación EST-01\", function () {",
+                  "  pm.expect(estacion.id).to.equal(\"EST-01\");",
+                  "  pm.expect(estacion.bicicletas).to.be.an(\"array\");",
+                  "});",
+                  "pm.test(\"Bicicletas ancladas + anclajes libres = capacidad\", function () {",
+                  "  pm.expect(estacion.bicicletas.length + estacion.disponibilidad.anclajesLibres).to.equal(estacion.capacidad);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/estaciones/EST-01",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "estaciones",
+                "EST-01"
+              ]
+            },
+            "description": "Detalle de la estación EST-01 con su disponibilidad y la lista de bicicletas ancladas. Respuesta esperada: 200 OK. Con un ID que no existe responde 404."
+          },
+          "response": []
+        },
+        {
+          "name": "3. Prestar una bicicleta eléctrica (POST)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado 201 Created\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test(\"El préstamo queda activo\", function () {",
+                  "  pm.expect(json.datos.prestamo.estado).to.equal(\"activo\");",
+                  "  pm.expect(json.datos.prestamo.usuarioId).to.equal(\"USR-1001\");",
+                  "});",
+                  "pm.test(\"Entrega una eléctrica con batería suficiente\", function () {",
+                  "  pm.expect(json.datos.bicicleta.tipo).to.equal(\"electrica\");",
+                  "  pm.expect(json.datos.bicicleta.estado).to.equal(\"en_uso\");",
+                  "  pm.expect(json.datos.bicicleta.bateria).to.be.above(19);",
+                  "});",
+                  "pm.collectionVariables.set(\"prestamoId\", json.datos.prestamo.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/prestamos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "prestamos"
+              ]
+            },
+            "description": "Crea un préstamo. La API valida que el usuario exista, no esté sancionado, no tenga otro préstamo y que la estación tenga una bici del tipo pedido con batería suficiente. Elige la eléctrica con más batería. Respuesta esperada: 201 Created. Guarda el ID en la variable prestamoId.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuarioId\": \"USR-1001\",\n  \"estacionId\": \"EST-01\",\n  \"tipo\": \"electrica\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "4. Devolver la bicicleta en otra estación (PATCH)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test(\"El préstamo queda finalizado en EST-07\", function () {",
+                  "  pm.expect(json.datos.prestamo.estado).to.equal(\"finalizado\");",
+                  "  pm.expect(json.datos.prestamo.estacionDestinoId).to.equal(\"EST-07\");",
+                  "  pm.expect(json.datos.prestamo.distanciaKm).to.be.above(0);",
+                  "});",
+                  "pm.test(\"Devuelta a tiempo: sin sanción\", function () {",
+                  "  pm.expect(json.datos.sancion.aplicada).to.be.false;",
+                  "});",
+                  "pm.test(\"La bici queda disponible en la estación destino\", function () {",
+                  "  pm.expect(json.datos.bicicleta.estado).to.equal(\"disponible\");",
+                  "  pm.expect(json.datos.bicicleta.estacionId).to.equal(\"EST-07\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/prestamos/{{prestamoId}}/devolucion",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "prestamos",
+                "{{prestamoId}}",
+                "devolucion"
+              ]
+            },
+            "description": "Finaliza el préstamo creado en la consulta 3. Calcula duración, distancia (km) y sanción si se pasó del límite. La estación destino debe tener anclajes libres. Respuesta esperada: 200 OK, sin sanción.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estacionId\": \"EST-07\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "5. Prestar una mecánica para cancelarla (POST)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado 201 Created\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Entrega una mecánica\", function () {",
+                  "  pm.expect(json.datos.bicicleta.tipo).to.equal(\"mecanica\");",
+                  "});",
+                  "pm.collectionVariables.set(\"prestamoId\", json.datos.prestamo.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/prestamos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "prestamos"
+              ]
+            },
+            "description": "Crea otro préstamo para probar la cancelación en la consulta 6. Respuesta esperada: 201 Created. Guarda el ID en prestamoId.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuarioId\": \"USR-1005\",\n  \"estacionId\": \"EST-05\",\n  \"tipo\": \"mecanica\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "6. Cancelar el préstamo recién creado (DELETE)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test(\"El préstamo queda cancelado\", function () {",
+                  "  pm.expect(json.datos.prestamo.estado).to.equal(\"cancelado\");",
+                  "});",
+                  "pm.test(\"La bici vuelve a EST-05\", function () {",
+                  "  pm.expect(json.datos.bicicleta.estacionId).to.equal(\"EST-05\");",
+                  "  pm.expect(json.datos.bicicleta.estado).to.equal(\"disponible\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/prestamos/{{prestamoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "prestamos",
+                "{{prestamoId}}"
+              ]
+            },
+            "description": "Cancela un préstamo que tiene menos de 2 minutos: la bici vuelve a la estación de origen. Respuesta esperada: 200 OK. Si pasaron más de 2 minutos responde 409."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. Más operaciones",
+      "item": [
+        {
+          "name": "Eléctricas disponibles con 50 % de batería o más (GET)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Todas son eléctricas disponibles con 50 % o más\", function () {",
+                  "  pm.response.json().datos.forEach(function (bici) {",
+                  "    pm.expect(bici.tipo).to.equal(\"electrica\");",
+                  "    pm.expect(bici.estado).to.equal(\"disponible\");",
+                  "    pm.expect(bici.bateria).to.be.above(49);",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bicicletas?tipo=electrica&estado=disponible&bateriaMin=50",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bicicletas"
+              ],
+              "query": [
+                {
+                  "key": "tipo",
+                  "value": "electrica"
+                },
+                {
+                  "key": "estado",
+                  "value": "disponible"
+                },
+                {
+                  "key": "bateriaMin",
+                  "value": "50"
+                }
+              ]
+            },
+            "description": "Filtra bicicletas combinando tres parámetros. Respuesta esperada: 200 OK."
+          },
+          "response": []
+        },
+        {
+          "name": "Enviar una bicicleta a mantenimiento (PATCH)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Queda en mantenimiento con auditoría\", function () {",
+                  "  pm.expect(json.datos.estado).to.equal(\"mantenimiento\");",
+                  "  pm.expect(json.auditoria.estadoAnterior).to.equal(\"disponible\");",
+                  "  pm.expect(json.auditoria.motivo).to.equal(\"Freno trasero desajustado\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bicicletas/BIC-002/estado",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bicicletas",
+                "BIC-002",
+                "estado"
+              ]
+            },
+            "description": "Cambia el estado de una bicicleta y deja registro en la auditoría. Respuesta esperada: 200 OK.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"mantenimiento\",\n  \"motivo\": \"Freno trasero desajustado\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar un usuario (POST)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado 201 Created\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "const usuario = pm.response.json().datos;",
+                  "pm.test(\"Usuario creado y habilitado\", function () {",
+                  "  pm.expect(usuario.id).to.match(/^USR-\\d+$/);",
+                  "  pm.expect(usuario.situacion).to.equal(\"habilitado\");",
+                  "  pm.expect(usuario.limiteMinutos).to.equal(60);",
+                  "});",
+                  "pm.collectionVariables.set(\"usuarioNuevoId\", usuario.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/usuarios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "usuarios"
+              ]
+            },
+            "description": "Registra un usuario nuevo. Valida formato de documento y correo, y que no estén repetidos. Respuesta esperada: 201 Created.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Mariana Cardona\",\n  \"documento\": \"1037123456\",\n  \"correo\": \"mariana.cardona@ejemplo.com\",\n  \"plan\": \"estudiante\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Perfil de un usuario con el préstamo vencido (GET)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const usuario = pm.response.json().datos;",
+                  "pm.test(\"Tiene un préstamo activo y vencido\", function () {",
+                  "  pm.expect(usuario.situacion).to.equal(\"con_prestamo\");",
+                  "  pm.expect(usuario.prestamoActivo.vencido).to.be.true;",
+                  "  pm.expect(usuario.prestamoActivo.minutosRestantes).to.be.below(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/usuarios/USR-1003",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "usuarios",
+                "USR-1003"
+              ]
+            },
+            "description": "Valentina lleva 95 minutos con la bicicleta y su plan permite 60. Respuesta esperada: 200 OK con prestamoActivo.vencido = true."
+          },
+          "response": []
+        },
+        {
+          "name": "Devolver tarde y reportar un daño: genera sanción (PATCH)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Se aplica sanción de 3 días\", function () {",
+                  "  pm.expect(json.datos.sancion.aplicada).to.be.true;",
+                  "  pm.expect(json.datos.sancion.dias).to.equal(3);",
+                  "  pm.expect(json.datos.prestamo.minutosExcedidos).to.be.above(0);",
+                  "});",
+                  "pm.test(\"La bici reportada queda en mantenimiento\", function () {",
+                  "  pm.expect(json.datos.bicicleta.estado).to.equal(\"mantenimiento\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/prestamos/PRE-0002/devolucion",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "prestamos",
+                "PRE-0002",
+                "devolucion"
+              ]
+            },
+            "description": "Devuelve el préstamo vencido de Valentina. 35 min de exceso = 3 días de sanción (1 día por cada 15 min). Como reporta un daño, la bici queda en mantenimiento. Respuesta esperada: 200 OK.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estacionId\": \"EST-06\",\n  \"reporteDanio\": \"La luz delantera no enciende\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Préstamos activos (GET)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const datos = pm.response.json().datos;",
+                  "pm.test(\"Todos están activos e incluye PRE-0001\", function () {",
+                  "  datos.forEach(function (p) {",
+                  "    pm.expect(p.estado).to.equal(\"activo\");",
+                  "    pm.expect(p).to.have.property(\"minutosRestantes\");",
+                  "  });",
+                  "  pm.expect(datos.map(function (p) { return p.id; })).to.include(\"PRE-0001\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/prestamos?estado=activo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "prestamos"
+              ],
+              "query": [
+                {
+                  "key": "estado",
+                  "value": "activo"
+                }
+              ]
+            },
+            "description": "Lista los préstamos que están en curso, con minutos transcurridos y restantes. Respuesta esperada: 200 OK con PRE-0001."
+          },
+          "response": []
+        },
+        {
+          "name": "Estadísticas del sistema (GET)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const datos = pm.response.json().datos;",
+                  "pm.test(\"Las cuentas de la flota cuadran\", function () {",
+                  "  const f = datos.flota;",
+                  "  pm.expect(f.disponibles + f.enUso + f.enMantenimiento).to.equal(f.total);",
+                  "  pm.expect(f.mecanicas + f.electricas).to.equal(f.total);",
+                  "});",
+                  "pm.test(\"Hay 4 zonas\", function () {",
+                  "  pm.expect(datos.zonas).to.have.lengthOf(4);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/estadisticas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "estadisticas"
+              ]
+            },
+            "description": "Resumen de la flota, estaciones, préstamos, usuarios y zonas. Respuesta esperada: 200 OK."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. Errores y validaciones",
+      "description": "Cada petición provoca a propósito un error para comprobar que la API responde con el código HTTP y el mensaje correctos.",
+      "item": [
+        {
+          "name": "Usuario sancionado no puede prestar → 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado 403\", function () {",
+                  "  pm.response.to.have.status(403);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Error con código USUARIO_SANCIONADO\", function () {",
+                  "  pm.expect(json.ok).to.be.false;",
+                  "  pm.expect(json.error.codigo).to.equal(\"USUARIO_SANCIONADO\");",
+                  "});",
+                  "pm.test(\"Indica hasta cuándo dura la sanción\", function () {",
+                  "  pm.expect(json.error.detalles).to.have.property(\"sancionadoHasta\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/prestamos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "prestamos"
+              ]
+            },
+            "description": "Camilo tiene una sanción vigente. Respuesta esperada: 403 Forbidden, código USUARIO_SANCIONADO.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuarioId\": \"USR-1004\",\n  \"estacionId\": \"EST-01\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Usuario que ya tiene una bici → 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado 409\", function () {",
+                  "  pm.response.to.have.status(409);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Error con código PRESTAMO_ACTIVO_EXISTENTE\", function () {",
+                  "  pm.expect(json.ok).to.be.false;",
+                  "  pm.expect(json.error.codigo).to.equal(\"PRESTAMO_ACTIVO_EXISTENTE\");",
+                  "});",
+                  "pm.test(\"Indica cuál es el préstamo activo\", function () {",
+                  "  pm.expect(json.error.detalles.prestamoActivoId).to.equal(\"PRE-0001\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/prestamos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "prestamos"
+              ]
+            },
+            "description": "Andrés ya tiene el préstamo PRE-0001 en curso. Respuesta esperada: 409 Conflict, código PRESTAMO_ACTIVO_EXISTENTE.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuarioId\": \"USR-1002\",\n  \"estacionId\": \"EST-01\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Estación sin bicicletas → 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado 409\", function () {",
+                  "  pm.response.to.have.status(409);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Error con código SIN_BICICLETAS_DISPONIBLES\", function () {",
+                  "  pm.expect(json.ok).to.be.false;",
+                  "  pm.expect(json.error.codigo).to.equal(\"SIN_BICICLETAS_DISPONIBLES\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/prestamos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "prestamos"
+              ]
+            },
+            "description": "San Antonio (EST-04) está vacía. Respuesta esperada: 409 Conflict, código SIN_BICICLETAS_DISPONIBLES.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuarioId\": \"USR-1006\",\n  \"estacionId\": \"EST-04\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Eléctrica con batería baja no se presta → 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado 409\", function () {",
+                  "  pm.response.to.have.status(409);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Error con código SIN_BICICLETAS_DISPONIBLES\", function () {",
+                  "  pm.expect(json.ok).to.be.false;",
+                  "  pm.expect(json.error.codigo).to.equal(\"SIN_BICICLETAS_DISPONIBLES\");",
+                  "});",
+                  "pm.test(\"Explica que hay una eléctrica sin carga\", function () {",
+                  "  pm.expect(json.error.detalles.electricasSinCarga).to.equal(1);",
+                  "  pm.expect(json.error.detalles.bateriaMinima).to.equal(20);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/prestamos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "prestamos"
+              ]
+            },
+            "description": "La única eléctrica de Parque Berrío tiene 12 % de batería (mínimo 20 %). Respuesta esperada: 409 Conflict.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuarioId\": \"USR-1006\",\n  \"estacionId\": \"EST-03\",\n  \"tipo\": \"electrica\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Devolver en una estación llena → 409 con sugerencias",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado 409\", function () {",
+                  "  pm.response.to.have.status(409);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Error con código ESTACION_LLENA\", function () {",
+                  "  pm.expect(json.ok).to.be.false;",
+                  "  pm.expect(json.error.codigo).to.equal(\"ESTACION_LLENA\");",
+                  "});",
+                  "pm.test(\"Sugiere estaciones cercanas con espacio\", function () {",
+                  "  const sugerencias = json.error.detalles.sugerencias;",
+                  "  pm.expect(sugerencias).to.be.an(\"array\");",
+                  "  pm.expect(sugerencias.length).to.be.above(0);",
+                  "  pm.expect(sugerencias[0].anclajesLibres).to.be.above(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/prestamos/PRE-0001/devolucion",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "prestamos",
+                "PRE-0001",
+                "devolucion"
+              ]
+            },
+            "description": "Parque Lleras (EST-08) no tiene anclajes libres. La API sugiere las estaciones cercanas con espacio. Respuesta esperada: 409 Conflict, código ESTACION_LLENA.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estacionId\": \"EST-08\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cancelar un préstamo de hace 20 minutos → 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado 409\", function () {",
+                  "  pm.response.to.have.status(409);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Error con código CANCELACION_FUERA_DE_TIEMPO\", function () {",
+                  "  pm.expect(json.ok).to.be.false;",
+                  "  pm.expect(json.error.codigo).to.equal(\"CANCELACION_FUERA_DE_TIEMPO\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/prestamos/PRE-0001",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "prestamos",
+                "PRE-0001"
+              ]
+            },
+            "description": "Solo se puede cancelar en los primeros 2 minutos. Respuesta esperada: 409 Conflict, código CANCELACION_FUERA_DE_TIEMPO."
+          },
+          "response": []
+        },
+        {
+          "name": "Campos inválidos → 400 con la lista de problemas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado 400\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Error con código VALIDACION\", function () {",
+                  "  pm.expect(json.ok).to.be.false;",
+                  "  pm.expect(json.error.codigo).to.equal(\"VALIDACION\");",
+                  "});",
+                  "pm.test(\"Reporta los 3 campos con problemas\", function () {",
+                  "  pm.expect(json.error.detalles).to.have.lengthOf(3);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/prestamos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "prestamos"
+              ]
+            },
+            "description": "Tres campos mal: usuarioId vacío, estacionId con formato incorrecto y tipo inexistente. La API los reporta todos juntos. Respuesta esperada: 400 Bad Request.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuarioId\": \"\",\n  \"estacionId\": \"EST-1\",\n  \"tipo\": \"patineta\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "JSON mal escrito → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado 400\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Error con código JSON_INVALIDO\", function () {",
+                  "  pm.expect(json.ok).to.be.false;",
+                  "  pm.expect(json.error.codigo).to.equal(\"JSON_INVALIDO\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/usuarios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "usuarios"
+              ]
+            },
+            "description": "El cuerpo tiene una coma sobrante. Respuesta esperada: 400 Bad Request, código JSON_INVALIDO.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Ana Torres\",\n  \"plan\": \"general\",\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Documento repetido → 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado 409\", function () {",
+                  "  pm.response.to.have.status(409);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Error con código DOCUMENTO_DUPLICADO\", function () {",
+                  "  pm.expect(json.ok).to.be.false;",
+                  "  pm.expect(json.error.codigo).to.equal(\"DOCUMENTO_DUPLICADO\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/usuarios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "usuarios"
+              ]
+            },
+            "description": "El documento ya pertenece a USR-1001. Respuesta esperada: 409 Conflict, código DOCUMENTO_DUPLICADO.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Laura Gómez Duque\",\n  \"documento\": \"1036654321\",\n  \"correo\": \"otra.laura@ejemplo.com\",\n  \"plan\": \"general\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Bicicleta en uso no cambia de estado → 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado 409\", function () {",
+                  "  pm.response.to.have.status(409);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Error con código BICICLETA_EN_USO\", function () {",
+                  "  pm.expect(json.ok).to.be.false;",
+                  "  pm.expect(json.error.codigo).to.equal(\"BICICLETA_EN_USO\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/bicicletas/BIC-051/estado",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "bicicletas",
+                "BIC-051",
+                "estado"
+              ]
+            },
+            "description": "BIC-051 está rodando en el préstamo PRE-0001. Respuesta esperada: 409 Conflict, código BICICLETA_EN_USO.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"mantenimiento\",\n  \"motivo\": \"Revisión general\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Estación que no existe → 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado 404\", function () {",
+                  "  pm.response.to.have.status(404);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Error con código ESTACION_NO_ENCONTRADA\", function () {",
+                  "  pm.expect(json.ok).to.be.false;",
+                  "  pm.expect(json.error.codigo).to.equal(\"ESTACION_NO_ENCONTRADA\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/estaciones/EST-99",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "estaciones",
+                "EST-99"
+              ]
+            },
+            "description": "Respuesta esperada: 404 Not Found, código ESTACION_NO_ENCONTRADA."
+          },
+          "response": []
+        },
+        {
+          "name": "Filtro con un valor inválido → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Estado 400\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Error con código VALIDACION\", function () {",
+                  "  pm.expect(json.ok).to.be.false;",
+                  "  pm.expect(json.error.codigo).to.equal(\"VALIDACION\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/estaciones?tipo=patineta",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "estaciones"
+              ],
+              "query": [
+                {
+                  "key": "tipo",
+                  "value": "patineta"
+                }
+              ]
+            },
+            "description": "El filtro tipo solo acepta mecanica o electrica. Respuesta esperada: 400 Bad Request."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
